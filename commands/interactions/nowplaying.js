@@ -1,7 +1,8 @@
 const Discord = require("discord.js");
 const func = require("../../utils/functions");
 const config = require("../../config.json");
-const { Client } = require("genius-lyrics");
+const { Client } = require("genius-lyrics"); // 導入 genius-lyrics 客戶端
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js'); 
 
 module.exports = {
     data: new Discord.SlashCommandBuilder().setName("nowplaying").setDescription("Shows the current playing song."),
@@ -11,14 +12,16 @@ module.exports = {
     queueNeeded: true,
 
     async execute(client, interaction, memberVC, botVC, queue) {
-        await interaction.deferReply();
+        // 延遲回覆，讓機器人顯示「正在思考...」
+        await interaction.deferReply({ ephemeral: false });
 
         const voiceChannelMembers = botVC.members.filter((member) => !member.user.bot);
         const song = queue.songs[0];
 
         let lyrics = '正在查詢歌詞...';
-        const maxLyricsLength = 850; // 保持這個長度，它現在只針對純歌詞內容
+        const maxLyricsLength = 850; // 設置歌詞最大顯示長度
 
+        // --- 歌詞查詢邏輯開始 ---
         let geniusSongUrl = null; // 初始化 Genius 歌曲連結變數
 
         try {
@@ -47,12 +50,11 @@ module.exports = {
                     }) || searches[0];
 
                     if (songMatch) {
-                        geniusSongUrl = songMatch.url; // 獲取 Genius 歌曲頁面的 URL
+                        geniusSongUrl = songMatch.url;
                         const foundLyrics = await songMatch.lyrics();
-
+                        
                         if (foundLyrics) {
                             lyrics = foundLyrics;
-
                             lyrics = lyrics.replace(/^\s*\d+\s+Contributors?.*?\n/gm, '');
                             lyrics = lyrics.replace(/Translations.*?\n/gm, '');
                             lyrics = lyrics.replace(/^[A-Za-z\s]+ Lyrics\s*\n/gm, '');
@@ -71,8 +73,6 @@ module.exports = {
                             } else if (lyrics.length > maxLyricsLength) {
                                 lyrics = lyrics.substring(0, maxLyricsLength) + '\n... (歌詞過長)';
                             }
-                            // 不再在 lyrics 內容中直接添加連結
-
                         } else {
                             lyrics = '找不到這首歌的歌詞。';
                         }
@@ -99,7 +99,7 @@ module.exports = {
             .setTitle("💿 Now Playing")
             .setDescription(
                 `正在播放 **[${song.name} (${song.formattedDuration})](${song.url})** 給 ${
-                    voiceChannelMembers.size
+                    voiceChannelMembers.size 
                 } 位聽眾在 ${botVC} 頻道中。\n\n${func.queueStatus(queue)}`
             )
             .setThumbnail(song?.thumbnail)
@@ -129,26 +129,55 @@ module.exports = {
                 value: `${func.numberWithCommas(song.dislikes)}`,
                 inline: true,
             });
-
+        
         if (song.uploader?.name) nowEmbed.addFields({ name: '👤 藝術家', value: song.uploader.name, inline: true });
         if (song.uploadedAt) nowEmbed.addFields({ name: '📅 發布日期', value: song.uploadedAt, inline: true });
 
         // 添加歌詞字段
         nowEmbed.addFields({
             name: '📝 歌詞',
-            value: `\`\`\`\n${lyrics}\n\`\`\`` // 歌詞內容，不包含連結
+            value: `\`\`\`\n${lyrics}\n\`\`\``
         });
 
-        // --- 新增：如果存在 Genius 連結，添加一個單獨的連結字段 ---
+        // 如果存在 Genius 連結，添加一個單獨的連結字段
         if (geniusSongUrl) {
             nowEmbed.addFields({
-                name: '🔗 完整歌詞連結', // 新的字段名稱
-                value: `[點擊這裡查看完整歌詞](${geniusSongUrl})`, // 可點擊的連結！
-                inline: false // 讓它獨佔一行
+                name: '🔗 完整歌詞連結',
+                value: `[點擊這裡查看完整歌詞](${geniusSongUrl})`,
+                inline: false
             });
         }
 
-        // 發送最終的 Embed 訊息
-        await interaction.editReply({ embeds: [nowEmbed] });
+        // --- 構建控制按鈕 (與 playSong.js 中的按鈕結構一致) ---
+        const filters = new StringSelectMenuBuilder().setCustomId("filters").setPlaceholder("選擇濾鏡");
+        const options = [];
+        for (const filter of Object.keys(queue.distube.filters)) {
+            options.push({
+                label: filter.charAt(0).toUpperCase() + filter.slice(1),
+                value: filter,
+            });
+        }
+        filters.addOptions(options);
+        const row1 = new ActionRowBuilder().addComponents([filters]);
+
+        const loopSongToggle = new ButtonBuilder().setCustomId("loop").setEmoji("🔁").setStyle(ButtonStyle.Secondary);
+        const previousSong = new ButtonBuilder().setCustomId("previous").setEmoji("⏮️").setStyle(ButtonStyle.Secondary);
+        const paunseUnpause = new ButtonBuilder().setCustomId("pauseUnpause").setEmoji("⏯️").setStyle(ButtonStyle.Secondary);
+        const nextSong = new ButtonBuilder().setCustomId("next").setEmoji("⏭️").setStyle(ButtonStyle.Secondary);
+        const shuffle = new ButtonBuilder().setCustomId("shuffle").setEmoji("🔀").setStyle(ButtonStyle.Secondary);
+
+        const volumeDown = new ButtonBuilder().setCustomId("vol-down").setEmoji("🔉").setStyle(ButtonStyle.Secondary);
+        const backward = new ButtonBuilder().setCustomId("backward").setEmoji("⏪").setStyle(ButtonStyle.Secondary);
+        const stop = new ButtonBuilder().setCustomId("stop").setEmoji("⏹️").setStyle(ButtonStyle.Danger);
+        const forward = new ButtonBuilder().setCustomId("forward").setEmoji("⏩").setStyle(ButtonStyle.Secondary);
+        const volumeUp = new ButtonBuilder().setCustomId("vol-up").setEmoji("🔊").setStyle(ButtonStyle.Secondary);
+
+        const row2 = new ActionRowBuilder().addComponents([loopSongToggle, previousSong, paunseUnpause, nextSong, shuffle]);
+        const row3 = new ActionRowBuilder().addComponents([volumeDown, backward, stop, forward, volumeUp]);
+
+        // 這裡移除了 row4 (顯示歌詞按鈕) 的定義
+
+        // 發送最終的 Embed 訊息，並包含所有按鈕行
+        await interaction.editReply({ embeds: [nowEmbed], components: [row1, row2, row3] }); // 這裡移除了 row4
     },
 };

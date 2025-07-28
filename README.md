@@ -56,12 +56,12 @@
     打開專案根目錄下的 `config.json` 檔案，並填入以下資訊：
     ```json
     {
-        "Prefix": "!", // 你希望的指令前綴，例如 "!" 或 "."
-        "MainColor": "#0099ff", // 嵌入式訊息的主要顏色 (Hex Code)
-        "ErrorColor": "#ff0000", // 錯誤訊息的顏色 (Hex Code)
-        "ClientID": "YOUR_BOT_CLIENT_ID_HERE", // 你的機器人應用程式 ID
-        "Token": "YOUR_BOT_TOKEN_HERE", // 你的機器人 Token
-        "GeniusAccessToken": "YOUR_GENIUS_ACCESS_TOKEN_HERE" // 從 Genius 開發者網站獲取的 Access Token
+        "Prefix": "!", /* 你希望的指令前綴，例如 "!" 或 "." */
+        "MainColor": "#0099ff", /* 嵌入式訊息的主要顏色 (Hex Code) */
+        "ErrorColor": "#ff0000", /* 錯誤訊息的顏色 (Hex Code) */
+        "ClientID": "YOUR_BOT_CLIENT_ID_HERE", /* 你的機器人應用程式 ID */
+        "Token": "YOUR_BOT_TOKEN_HERE", /* 你的機器人 Token */
+        "GeniusAccessToken": "YOUR_GENIUS_ACCESS_TOKEN_HERE" /* 從 Genius 開發者網站獲取的 Access Token */
 
     }
     ```
