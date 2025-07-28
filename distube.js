@@ -4,8 +4,8 @@ const { YouTubePlugin } = require("@distube/youtube");
 const { SoundCloudPlugin } = require("@distube/soundcloud");
 const { SpotifyPlugin } = require("@distube/spotify");
 const { DeezerPlugin } = require("@distube/deezer");
-const { YtDlpPlugin } = require("@distube/yt-dlp");
 const { AppleMusicPlugin } = require("distube-apple-music");
+const { YtDlpPlugin } = require("@distube/yt-dlp");
 
 client.distubeSettings = {
     leaveOnEmpty: true, // Whether or not leaving voice channel if the voice channel is empty after DisTubeOptions.emptyCooldown seconds.
